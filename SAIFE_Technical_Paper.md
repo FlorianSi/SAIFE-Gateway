@@ -1,11 +1,11 @@
 # SAIFE Gateway: The Technical & Pedagogical Blueprint
-**Safe AI Framework for Education – Bridging the Gap Between Developer Security and Classroom Reality**
+**Safe AI Framework for Education – Safely Unlocking the Potential of Generative AI in the Classroom**
 
 ---
 
 ## 1. Executive Summary
 
-The deployment of generative AI in schools represents a paradigm shift in education. However, under the **EU AI Act**, AI systems used in educational and vocational training are classified as **High-Risk**. The challenge is twofold: how do we ensure absolute safety (protecting minors from harmful content, cyberbullying, and crises) without crippling the pedagogical freedom of teachers?
+The deployment of generative AI in schools represents a paradigm shift in education. However, under the **EU AI Act**, AI systems used in educational and vocational training are classified as **High-Risk**. The challenge is twofold: how can schools ensure absolute safety (protecting minors from harmful content, inappropriate interactions, and crises) without crippling the pedagogical freedom of teachers?
 
 The **SAIFE Gateway** (`@saife/gateway`) is an experimental, lightweight TypeScript middleware that sits between a school's digital learning platform and the underlying Large Language Model (LLM). SAIFE abandons fragile text-parsing methods in favor of **API-native isolation**, **cryptographic policy enforcement**, and **GDPR-compliant telemetry**.
 
@@ -18,14 +18,16 @@ This paper serves as a technical specification for developers, a cryptographic g
 
 ## 2. The Core Concept: Separating Security from Pedagogy
 
-Previous AI systems failed in schools because they mixed *safety* (e.g., preventing hate speech) with *didactics* (e.g., deciding whether to give a student the direct answer to a math problem). SAIFE strictly separates these concerns using a multi-layer architecture:
+Previous AI systems failed in schools because they mixed *safety* (e.g., preventing hate speech) with *didactics* (e.g., deciding whether to give a student the direct answer to a math problem). SAIFE strictly separates these concerns using a 4-layer architecture:
 
 - **Layer 1 (The Ministry Policy - Security):** Cryptographically signed rules set by the government or educational board. This layer enforces absolute red lines (no self-harm, no violence, mandatory fallback behaviors). It cannot be bypassed by teachers or students.
+- **Layer 2 (The AI Persona - Base Instruction):** The default educational baseline or character (e.g., "Helpful school assistant") that provides a consistent instructional tone.
 - **Layer 3 (The Didactic DSL - Pedagogy):** A Domain-Specific Language (DSL) configured by the teacher. It contains separate controls like `didactic_mode` (e.g., Socratic dialogue vs. direct answers) and `ghostwriting_policy` (e.g., assisted outlining vs. full essay generation).
+- **Layer 4 (The User Input):** The student's prompts and the active conversation history.
 
 > [!TIP] 
 > **🎯 For Schools & Teachers: Pedagogical Freedom** 
-> By separating these layers, we guarantee that child protection is uniformly enforced across all schools, while returning classroom autonomy to you. If a student tricks the AI into revealing a homework solution, it is treated as a pedagogical feedback event on your dashboard, not a system-crashing security breach. You have full control over the `didactic_mode`.
+> By separating these layers, the framework guarantees that child protection (Layer 1) is uniformly enforced across all schools, while returning classroom autonomy (Layer 3) to you. If a student tricks the AI into revealing a homework solution, it is treated as a pedagogical feedback event on your dashboard, not a system-crashing security breach. You have full control over the `didactic_mode`.
 
 ---
 
@@ -84,7 +86,7 @@ The SAIFE repository is structured into distinct modules to ensure a zero-trust,
 ### `src/core/` (The Middleware Engine)
 - **`saife_orchestrator.ts`**: The main entry point for the Gateway. It coordinates the execution pipeline, passing data between the policy verifier, the pre-flight gate, the LLM client, and the stream inspector.
 - **`preflight_gate.ts`**: Analyzes the student's input *before* any request is sent to the LLM. It generates Confidence Scores to identify ambiguous statements (triggering Soft-Alerts) or acute crises (triggering Hard-Alerts).
-- **`prompt_compiler.ts`**: Responsible for API-native isolation. It securely merges the verified Layer 1 Policy, the Teacher's Layer 3 DSL, and the user input into an array of strictly separated roles (`system`, `developer`, `user`), preventing prompt injection attacks.
+- **`prompt_compiler.ts`**: Responsible for API-native isolation. It securely compiles the 4 layers (Layer 1 Safety, Layer 2 Persona, Layer 3 Didactic DSL) into a single system message wrapped in XML tags, alongside the Layer 4 User Input, preventing prompt injection attacks by neutralizing structural markup.
 - **`stream_inspector.ts` (The Chunk-Gate)**: Intercepts the incoming stream from the LLM. It buffers tokens into small semantic chunks and verifies each chunk against the policy *before* releasing it to the frontend. This prevents "Salami-Slicing" exploits where the AI reveals a solution step-by-step.
 - **`crisis_handler.ts`**: Activated during a Hard-Alert or a Chunk-Gate violation. It gracefully aborts the stream, wipes the frontend context, and delivers legally verified fallback responses ("lifelines").
 
