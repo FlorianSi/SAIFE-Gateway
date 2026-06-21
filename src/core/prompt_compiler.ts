@@ -1,0 +1,53 @@
+/**
+ * Compiles prompts while strictly mapping system and user roles.
+ * Enforces separation of concerns between safety, persona, and didactic layers.
+ */
+
+export interface PromptLayers {
+  safetyLayer: string;   // Layer 1
+  personaLayer: string;  // Layer 2
+  didacticLayer: string; // Layer 3
+  userInput: string;     // Layer 4
+}
+
+export interface CompiledMessage {
+  role: 'system' | 'user';
+  content: string;
+}
+
+export class PromptCompiler {
+  /**
+   * Compiles layers into messages for LLM providers.
+   * @param layers Distinct prompt layers.
+   */
+  public compile(layers: PromptLayers): CompiledMessage[] {
+    this.validateLayers(layers);
+
+    const systemContent = this.buildSystemContent(
+      layers.safetyLayer,
+      layers.personaLayer,
+      layers.didacticLayer
+    );
+
+    return [
+      { role: 'system', content: systemContent },
+      { role: 'user', content: layers.userInput }
+    ];
+  }
+
+  private buildSystemContent(safety: string, persona: string, didactic: string): string {
+    // Basic sanitization to prevent boundary collapse
+    const sanitize = (text: string) => text.replace(/<\/?(safety_rules|persona|didactic_guidelines)>/gi, '');
+    
+    return `<safety_rules>\n${sanitize(safety)}\n</safety_rules>\n\n<persona>\n${sanitize(persona)}\n</persona>\n\n<didactic_guidelines>\n${sanitize(didactic)}\n</didactic_guidelines>`;
+  }
+
+  private validateLayers(layers: PromptLayers): void {
+    if (!layers.userInput || layers.userInput.trim() === '') {
+      throw new Error('User input layer cannot be empty.');
+    }
+    if (!layers.safetyLayer) {
+      throw new Error('Safety layer (Layer 1) is strictly required.');
+    }
+  }
+}
