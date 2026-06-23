@@ -1,5 +1,9 @@
 # SAIFE Gateway (Safe AI Framework for Education)
 
+[📖 README](README.md) | [⚖️ License](LICENSE) | [🛠️ Technical Specification](local_docs/SAIFE_Technical_Specification.md) | [🛡️ Security & Privacy Brief](local_docs/SAIFE_Security_Privacy_Brief.md)
+
+**SAIFE** stands for **Safe AI Framework for Education**. The main purpose of all SAIFE tools is to safely unlock the potential of artificial intelligence in schools and classrooms by bridging pedagogical freedom with strict safety guardrails.
+
 > [!WARNING]
 > **Experimental Concept / Proof of Concept**
 > This repository represents an early-stage, experimental concept for a secure AI middleware in educational environments. It has **not** been formally audited, tested in a real-world production environment, or proven to be completely secure. It is provided as a humble attempt to spark discussion and offer a potential direction for how AI integration *could* be implemented safely in schools.
@@ -38,9 +42,11 @@ If you find vulnerabilities or have ideas for improvement, please open an Issue 
 
 ## 📖 Documentation
 
-For a deep dive into the proposed architecture, including the Chunk-Gate mechanism, the cryptographic signature process, and the approach to GDPR-compliant telemetry, please read the **Technical & Pedagogical Blueprint**:
+For a deep dive into the proposed architecture, compliance, and setup of the SAIFE Gateway, please read our specialized documents:
 
-- 📝 [SAIFE_Technical_Paper.md](./SAIFE_Technical_Paper.md) (Technical & Pedagogical Blueprint)
+- 🛠️ [SAIFE Technical Specification](local_docs/SAIFE_Technical_Specification.md) – A developer-facing document with full API contracts, DSL schemas, and setup parameters.
+- 🛡️ [SAIFE Security, Privacy & Policy Brief](local_docs/SAIFE_Security_Privacy_Brief.md) – A compliance-focused document for DPOs and certification bodies, covering GDPR, EU AI Act, and Differential Privacy constraints.
+- 📝 [SAIFE_Technical_Paper.md](./SAIFE_Technical_Paper.md) (Original Technical & Pedagogical Blueprint)
 
 ## 🛠️ Repository Structure
 

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 
 const GatewayPipeline = ({ logs, currentPrompt, t, lang, onOpenHelp }) => {
   const logEndRef = useRef(null);
@@ -23,7 +23,7 @@ const GatewayPipeline = ({ logs, currentPrompt, t, lang, onOpenHelp }) => {
       <div className="panel-header">
         {t.pipelineTitle}
       </div>
-      <div className="panel-content">
+      <div className="panel-content pipeline-panel-content">
         
         <div className="field">
           <div className="section-title">{t.promptCompilerTitle}</div>

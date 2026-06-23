@@ -69,7 +69,8 @@ body {
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* ─── HEADER ─── */
@@ -108,6 +109,10 @@ body {
   margin-top: 0.25rem;
 }
 
+.subtitle-letter {
+  color: var(--accent);
+}
+
 .header-controls {
   display: flex;
   gap: 0.5rem;
@@ -143,12 +148,13 @@ body {
   display: grid;
   /* 2 columns: Config (Layers), Chat */
   grid-template-columns: 350px 1fr;
-  align-items: start;
+  align-items: stretch;
   gap: 1.5rem;
-  padding: 1.5rem 2rem 2rem;
+  padding: 1.5rem 2rem;
   max-width: 1800px;
   margin: 0 auto;
   width: 100%;
+  min-height: 0;
 }
 
 /* ─── PANELS ─── */
@@ -159,9 +165,8 @@ body {
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  position: sticky;
-  top: calc(var(--header-h) + 1.5rem);
-  height: calc(100vh - var(--header-h) - 3rem);
+  height: 100%;
+  min-height: 0;
 }
 
 .panel-header {
@@ -184,6 +189,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
+  min-height: 0;
 }
 
 /* Chat Panel Specific */
@@ -356,6 +362,27 @@ input:checked + .slider:before {
   border-color: rgba(230, 106, 85, 0.4);
 }
 
+/* ─── SAFETY BADGE ─── */
+.safety-badge {
+  display: flex;
+  gap: 0.8rem;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border);
+  padding: 0.8rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  line-height: 1.4;
+  align-items: flex-start;
+}
+
+.safety-badge-icon {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -499,6 +526,276 @@ pre {
   background: var(--bg-hover);
   color: var(--text-primary);
   border-color: var(--border-active);
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 1100px) {
+  .app {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+  .main {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    padding: 1rem 1rem 2rem;
+    height: auto;
+    min-height: 0;
+  }
+  .panel {
+    position: static;
+    height: auto;
+    min-height: 400px;
+  }
+}
+
+/* ─── TECHNICAL TERMS & MODALS ─── */
+.term-link {
+  color: var(--accent);
+  text-decoration: underline dashed;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.2s, text-shadow 0.2s;
+}
+
+.term-link:hover {
+  color: var(--border-active);
+  text-decoration: underline solid;
+  text-shadow: 0 0 4px rgba(242, 167, 102, 0.3);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeInModal 0.2s ease-out;
+}
+
+.modal-content {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-accent);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-header {
+  padding: 1rem 1.5rem;
+  background-color: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.modal-header .close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+  line-height: 1;
+}
+
+.modal-header .close-btn:hover {
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 1.5rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── ABOUT PAGE ─── */
+.about-page {
+  max-width: 800px;
+  margin: 0 auto;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.about-header {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
+}
+
+.about-title {
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.about-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.about-section {
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 1.5rem;
+}
+
+.about-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.about-section h3 {
+  font-size: 1.1rem;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.about-text h4 {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.about-text p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-size: 0.9rem;
+  margin-bottom: 0.8rem;
+}
+
+.about-text ul {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-size: 0.9rem;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.about-text li {
+  margin-bottom: 0.4rem;
+}
+
+.back-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-bottom: 2rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+}
+
+.main.single-pane {
+  display: block;
+}
+
+/* ─── ABOUT PAGE SCROLL OVERRIDES ─── */
+.app.page-about {
+  height: auto;
+  min-height: 100vh;
+  overflow: auto;
+}
+
+/* ─── FOOTER ─── */
+/* Normal document flow — appears at the end of the page */
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+  margin-top: auto;
+}
+
+.footer-credits {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.footer-link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  margin-left: 0.25rem;
+  transition: color 0.2s;
+}
+
+.footer-link-btn:hover {
+  color: var(--text-primary);
 }
 
 

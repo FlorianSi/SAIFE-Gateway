@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
-const ChatSimulation = ({ config, chatLog, setChatLog, t, lang, onOpenHelp }) => {
+const ChatSimulation = ({ config, chatLog, setChatLog, t }) => {
   const [scenarioCategory, setScenarioCategory] = useState('security');
   const chatEndRef = useRef(null);
 

@@ -12,7 +12,7 @@
  * Platform operators are the Data Controller and bear all obligations under Art. 6, 13, 14.
  *
  * IMPORTANT — Rate Limiting:
- * To prevent resource exhaustion, the SDK maintains a volatile, transient in-memory integer
+ * To prevent resource exhaustion, the Gateway maintains a volatile, transient in-memory integer
  * Token Bucket for rate limiting. This transient memory contains no event payloads, no
  * personal data, and no behavioral history, and is irrevocably destroyed upon process termination.
  */

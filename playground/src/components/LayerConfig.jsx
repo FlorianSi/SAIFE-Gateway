@@ -1,8 +1,7 @@
-import React from 'react';
 
 const LayerConfig = ({ config, onConfigChange, t, lang, onOpenHelp }) => {
   return (
-    <div className="panel">
+    <div className="panel config-panel">
       <div className="panel-header">
         {t.configTitle}
       </div>
