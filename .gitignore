@@ -1,5 +1,7 @@
 # Local files and documentation not intended for GitHub
-/local_docs/
+/local_docs/*
+!/local_docs/SAIFE_Security_Privacy_Brief.md
+!/local_docs/SAIFE_Technical_Specification.md
 
 # Dependency directories
 /node_modules/
