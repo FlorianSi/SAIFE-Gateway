@@ -1,7 +1,4 @@
 # SAIFE Security, Privacy & Policy Brief
-**Version:** 4.0.1  
-**Target Audience:** State-Level Data Protection Officers (Datenschutzbeauftragte der Länder), Certification Bodies (e.g., BSI), and System Operators.  
-**Scope:** EU AI Act Compliance, GDPR (DSGVO) Alignment, and BSI Grundschutz Application.
 
 ## Executive Summary
 This document outlines the security architecture and data protection mechanisms of the SAIFE Gateway (Safe AI Framework for Education). It provides the legal, technical, and operational facts necessary for drafting legally compliant Privacy Policies (Datenschutzerklärungen) and conducting Data Protection Impact Assessments (DPIA / DSFA). 
@@ -53,4 +50,3 @@ When drafting a Privacy Policy (Datenschutzerklärung) for a SAIFE-powered deplo
 4. **Retention Policies:** Chat histories should be subject to strict TTL (Time-To-Live) constraints and purged after the pedagogical session concludes, unless explicitly opted into for research under Differential Privacy protocols.
 
 ---
-*Document prepared by SAIFE Compliance & DPO Office.*
