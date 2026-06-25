@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 
-const GatewayPipeline = ({ logs, currentPrompt, t, lang, onOpenHelp }) => {
+const GatewayPipeline = ({ logs, currentPrompt, session, t, lang, onOpenHelp }) => {
   const logEndRef = useRef(null);
 
   useEffect(() => {
@@ -39,6 +39,27 @@ const GatewayPipeline = ({ logs, currentPrompt, t, lang, onOpenHelp }) => {
           </pre>
         </div>
 
+        <div className="field" style={{marginTop: '1rem'}}>
+          <div className="section-title">{t.sessionTrackerTitle}</div>
+          <p className="field-desc">
+            {lang === 'de' ? (
+              <>Verwaltet den <span className="term-link" onClick={() => onOpenHelp('turnIndex')}>Turn-Index</span> für den StruggleTracker und isoliert Sessions für LDP.</>
+            ) : (
+              <>Manages the <span className="term-link" onClick={() => onOpenHelp('turnIndex')}>Turn-Index</span> for the StruggleTracker and isolates sessions for LDP.</>
+            )}
+          </p>
+          <div className="session-tracker-box">
+            <div className="tracker-row">
+              <span className="tracker-label">{t.sessionHash}:</span>
+              <span className="tracker-value">{session.sessionId}</span>
+            </div>
+            <div className="tracker-row">
+              <span className="tracker-label">{t.currentTurn}:</span>
+              <span className="tracker-value highlight-turn">{session.turnIndex}</span>
+            </div>
+          </div>
+        </div>
+
         <div className="field pipeline-logs-field">
           <div className="section-title">{t.telemetryTitle}</div>
           <p className="field-desc">
@@ -57,7 +78,12 @@ const GatewayPipeline = ({ logs, currentPrompt, t, lang, onOpenHelp }) => {
             )}
             {logs.map((log, idx) => (
               <div key={idx} className={`log-entry ${log.type} ${log.category ? `log-cat-${log.category}` : ''}`}>
-                {log.text}
+                {log.text && <div>{log.text}</div>}
+                {log.payload && (
+                  <pre className="payload-json" style={{ background: 'var(--bg-card)', padding: '0.5rem', borderRadius: '4px', marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    {JSON.stringify(log.payload, null, 2)}
+                  </pre>
+                )}
               </div>
             ))}
             <div ref={logEndRef} />

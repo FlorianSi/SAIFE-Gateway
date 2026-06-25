@@ -82,6 +82,29 @@ const LayerConfig = ({ config, onConfigChange, t, lang, onOpenHelp }) => {
             <option value="block">{t.policyBlock}</option>
             <option value="allow_scaffold">{t.policyScaffold}</option>
           </select>
+
+          <div style={{marginTop: '1rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)'}}>
+            <div className="section-title" style={{fontSize: '0.9rem'}}>{t.focusDirectiveTitle}</div>
+            
+            <label className="field-label" style={{marginTop: '0.5rem'}}>{t.focusTopic}</label>
+            <input 
+              type="text" 
+              className="text-input"
+              value={config.focusTopic} 
+              onChange={(e) => onConfigChange({ focusTopic: e.target.value })}
+              placeholder="e.g. fractions, linear_equations"
+            />
+
+            <label className="field-label" style={{marginTop: '0.5rem'}}>{t.struggleThreshold}</label>
+            <input 
+              type="number" 
+              className="number-input"
+              min="1"
+              max="10"
+              value={config.struggleThreshold} 
+              onChange={(e) => onConfigChange({ struggleThreshold: parseInt(e.target.value) || 3 })}
+            />
+          </div>
         </div>
 
         {/* Layer 4 */}

@@ -14,6 +14,13 @@ function App() {
     simulateSignatureFail: false,
     didacticMode: 'socratic',
     ghostwritingPolicy: 'block',
+    focusTopic: 'fractions',
+    struggleThreshold: 3,
+  });
+
+  const [session, setSession] = useState({
+    turnIndex: 0,
+    sessionId: 'session_8f4c29a1'
   });
 
   const [chatLog, setChatLog] = useState([
@@ -115,11 +122,15 @@ function App() {
             addLog={addLog}
             clearLogs={clearLogs}
             setCurrentPrompt={setCurrentPrompt}
+            session={session}
+            setSession={setSession}
             t={t}
+            lang={lang}
           />
           <GatewayPipeline 
             logs={pipelineLogs} 
             currentPrompt={currentPrompt} 
+            session={session}
             t={t} 
             lang={lang}
             onOpenHelp={openModal}

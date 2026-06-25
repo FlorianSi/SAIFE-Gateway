@@ -8,6 +8,9 @@
  * via excessively large payloads.
  */
 
+import { TeacherFocusDirective } from '../core/focus_directive';
+import { StruggleRecommendation } from '../core/struggle_tracker';
+
 // ==========================================
 // LAYER 3: Didactic Configuration
 // ==========================================
@@ -26,20 +29,22 @@ export type GhostwritingPolicy =
 
 export type FallbackPolicy = 
   | 'offer_hint'
-  | 'reveal_solution'
-  | 'escalate_to_teacher';
+  | 'direct_correction'
+  | 'step_back';
 
 /**
  * Defines the instructional parameters set by the teacher or LMS.
  * This determines HOW the AI should respond pedagogically.
  */
-export interface DidacticContext {
+export interface DslConfig {
   didactic_mode: DidacticMode;
   ghostwriting_policy: GhostwritingPolicy;
   /** Action to take when the student exceeds the struggle_threshold */
   fallback_policy?: FallbackPolicy;
   /** Domains from which analogies should be drawn (e.g., ["sports", "music"]) */
   analogy_domains?: string[];
+  /** Hard topic boundaries to restrict model scope. */
+  allowed_topics?: string[];
   /**
    * Specific learning objectives for the current session.
    * These are used as the reference for any 'learning_signal' events and must be
@@ -47,14 +52,15 @@ export interface DidacticContext {
    */
   learning_objectives?: string[];
   /**
-   * Threshold (0.0 to 1.0) indicating when a student is deemed to be struggling.
-   * IMPORTANT: Must be validated at runtime (e.g., via Zod .min(0).max(1)).
-   * Behavioral anchors: 0.3 = sensitive (frequent alerts), 0.6 = balanced, 0.9 = permissive.
-   * Default recommendation: 0.6. A poorly calibrated low value can create
-   * anxiety-inducing dashboards that flag productive struggle as a problem.
+   * The number of consecutive turns without measurable progress.
+   * @minimum 1
+   * Example: A value of 3 dictates that upon the third consecutive incorrect submission, the state transitions and invokes the fallback_policy.
    */
   struggle_threshold?: number;
 }
+
+// Alias for backwards compatibility with existing backend structures
+export type DidacticContext = DslConfig;
 
 // ==========================================
 // LAYERS 1-2 & LAYER 4: Message Structures
@@ -115,6 +121,11 @@ export interface SaifeApiRequest {
   /** Layer 4: The actual conversation history and user input */
   messages: ConversationMessage[];
   
+  /** Teacher Focus Directives for this session (F2) */
+  focusDirectives?: TeacherFocusDirective[];
+  /** If the teacher confirmed a prior struggle recommendation, the fallback policy is applied */
+  confirmedFallbackPolicy?: FallbackPolicy;
+
   /** LLM Provider Settings */
   model: string;
   temperature?: number;
@@ -158,6 +169,7 @@ export interface StreamTelemetryEvent {
     /**
      * Event type taxonomy:
      * - 'struggle_detected'            : Student is showing signs of difficulty (welfare/support signal).
+     * - 'struggle_recommendation'      : Advisory recommendation for the teacher to intervene.
      * - 'frustration_detected'         : Student exhibits frustration markers in interaction style.
      * - 'aha_moment'                   : Student self-reports or displays markers of sudden insight.
      * - 'idle'                         : No interaction for a configured period.
@@ -165,14 +177,19 @@ export interface StreamTelemetryEvent {
      *                                    learning objective. Formative only — requires teacher review.
      * - 'conceptual_difficulty_signal' : [PLANNED] LLM observes interaction suggesting a conceptual
      *                                    difficulty. Requires domain ontology for reliable detection.
+     * - 'focus_progress'               : Progress made on a Teacher Focus Directive.
+     * - 'focus_mastery_signal'         : Mastery of a Teacher Focus Directive achieved.
      */
     event_type:
       | 'struggle_detected'
+      | 'struggle_recommendation'
       | 'frustration_detected'
       | 'aha_moment'
       | 'idle'
       | 'learning_signal'
-      | 'conceptual_difficulty_signal';
+      | 'conceptual_difficulty_signal'
+      | 'focus_progress'
+      | 'focus_mastery_signal';
     confidence: number;
     /**
      * Always true for all pedagogical observation events.
@@ -239,3 +256,48 @@ export type SaifeStreamEvent =
   | StreamTelemetryEvent 
   | StreamRetractionEvent 
   | StreamSystemEvent;
+
+// ==========================================
+// GATEWAY CONFIGURATION & CLIENT
+// ==========================================
+
+export interface ChatHistoryConfig {
+  maxTokens: number;
+  compressionStrategy: 'summarize' | 'truncate';
+  lostInTheMiddleMitigation: boolean;
+}
+
+export interface RateLimitConfig {
+  maxProbesPerHour: number;
+  lockoutDurationMinutes: number;
+}
+
+export interface SaifeClientConfig {
+  /** API Key for model access. */
+  apiKey: string;
+  /** Optional gRPC endpoint for the Guard-Engine microservice. */
+  guardEngineEndpoint?: string; 
+  /** Token count per inspection chunk. @default 15 */
+  chunkSizeTokens?: number; 
+  chatHistoryLimits?: ChatHistoryConfig;
+  rateLimitConfig?: RateLimitConfig;
+}
+
+export class SaifeError extends Error {
+  code: 'RATE_LIMIT_EXCEEDED' | 'PRE_FLIGHT_REJECTION' | 'INVALID_DSL_CONFIG' | 'ENGINE_UNAVAILABLE';
+  details?: any;
+  
+  constructor(code: 'RATE_LIMIT_EXCEEDED' | 'PRE_FLIGHT_REJECTION' | 'INVALID_DSL_CONFIG' | 'ENGINE_UNAVAILABLE', message: string, details?: any) {
+    super(message);
+    this.code = code;
+    this.details = details;
+  }
+}
+
+export interface SaifeClient {
+  executeStream(
+    prompt: string,
+    history: any[],
+    dslConfig: DslConfig
+  ): AsyncIterable<SaifeStreamEvent>;
+}

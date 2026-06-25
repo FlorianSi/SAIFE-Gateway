@@ -1,10 +1,14 @@
 # SAIFE Technical Specification
 
-## 1. Architectural Overview
+> [!NOTE]
+> **Experimental Concept**
+> This specification describes an experimental blueprint for an educational AI middleware. It does not claim perfection or absolute security. Instead, it is offered as a starting point for developers, educators, and security researchers to use, test, challenge, and improve. We invite the community to find flaws and contribute to making digital learning environments safer.
 
-SAIFE strictly separates pedagogical policy definition from model execution logic. By routing teacher policy to the system role and student input to the user role, SAIFE mitigates prompt injection via API-native boundaries. However, as role separation is fundamentally a probabilistic defense rather than an absolute guarantee, SAIFE incorporates a pre-generation inspection layer (Pre-Flight Gate) and stream-level filtering for defense-in-depth.
+## 1. Architectural Concept
 
-For crisis detection, the `trigger_crisis_protocol()` Tool-Call fallback acts as a best-effort secondary signal. It is not an equivalent, co-equal safety layer to the Pre-Flight Gate, as its reliability remains bounded by the underlying model's own adversarial resistance.
+SAIFE attempts to separate pedagogical policy definition from model execution logic. By routing teacher policies to the system role and student input to the user role, SAIFE aims to reduce the risk of prompt injection via API-native boundaries. However, as role separation is fundamentally a probabilistic defense rather than an absolute guarantee, this concept proposes supplementary layers like a pre-generation inspection (Pre-Flight Gate) and stream-level filtering for a defense-in-depth approach.
+
+For crisis detection, the `trigger_crisis_protocol()` Tool-Call fallback acts as a best-effort secondary signal. It is not an infallible safety layer, as its reliability depends heavily on the underlying model's own adversarial resistance.
 
 ### 1.1 Execution Environments
 
@@ -54,7 +58,7 @@ export interface RateLimitConfig {
 }
 ```
 
-### 2.2 Pedagogical DSL Definition
+### 2.2 Pedagogical DSL & Tracking Interfaces
 
 ```typescript
 export interface DslConfig {
@@ -65,14 +69,25 @@ export interface DslConfig {
   struggle_threshold: number;
 
   /**
-   * Pedagogical intervention strategy applied when struggle_threshold is met.
+   * Pedagogical intervention strategy proposed when struggle_threshold is met.
    */
   fallback_policy: 'offer_hint' | 'direct_correction' | 'step_back';
+}
 
-  /**
-   * Hard topic boundaries to restrict model scope.
-   */
-  allowed_topics: string[];
+export interface TeacherFocusDirective {
+  directiveId: string;
+  studentId: string;
+  focusTopic: string; // Dynamically validated via strict regex allowlist
+  targetObjectives?: string[];
+  preferredStrategy?: 'repetition' | 'scaffolding' | 'alternative_explanation';
+  createdAt: string;
+  expiresAt: string; // Mandatory TTL constraint
+}
+
+export interface SessionContext {
+  sessionId: string; // Volatile, non-identifying hash
+  turnIndex: number;
+  sessionStartedAt: string;
 }
 ```
 
@@ -105,16 +120,24 @@ export interface SaifeClient {
 *   **Definition**: The number of tokens processed simultaneously by the Chunk-Gate during stream evaluation.
 *   **Justification**: Empirical testing across known Salami-Slicing attack patterns indicates that `15` provides the optimal balance between inspection latency and security. Smaller values introduce excessive latency overhead due to asynchronous evaluations, while larger values may allow partial adversarial payloads to slip through the pipeline.
 
-### `struggle_threshold`
-*   **Definition**: An integer specifying the number of consecutive student turns demonstrating no measurable progress (e.g., repeated incorrect attempts, syntax errors, or failure to apply an offered hint). 
-*   **Example**: A value of `3` dictates that upon the third consecutive incorrect submission, the state transitions and invokes the `fallback_policy`.
+### `struggle_threshold` & The StruggleTracker
+*   **Definition**: An integer specifying the number of consecutive student turns demonstrating no measurable progress (e.g., repeated incorrect attempts). 
+*   **Role of `StruggleTracker`**: The `StruggleTracker` class tracks this threshold purely in-memory. Crucially, to prevent automated profiling, the tracker acts in an **advisory-only** capacity. When the threshold is met, it does not autonomously alter the AI's behavior, but instead emits a recommendation (`struggle_recommendation`) to the teacher's dashboard.
 
 ### `fallback_policy`
-*   **Definition**: The exact pedagogical intervention activated when `struggle_threshold` is exceeded.
+*   **Definition**: The pedagogical intervention proposed to the teacher when `struggle_threshold` is exceeded. It is only applied if the teacher confirms it (Human-in-the-loop).
 *   **Valid Values**:
     *   `offer_hint`: Scaffolded assistance without revealing the final answer.
     *   `direct_correction`: Immediate disclosure of the correct answer alongside an explanation of the error.
     *   `step_back`: Reprompts the student with a simplified or foundational question to isolate the misunderstanding.
+
+### TeacherFocusDirective
+*   **Definition**: Specific, temporary instructional goals set by a teacher for a student.
+*   **Role of `focus_directive.ts`**: To prevent Prompt Injection through LMS-provided metadata, this module validates incoming directives using a strict regular expression (`^[a-zA-Z0-9\s\-_äöüÄÖÜß]+$`). Validated directives are then compiled securely into the system prompt.
+
+### SessionTracker
+*   **Definition**: A utility (`session_tracker.ts`) to track the temporal progression of a conversation (turn index and duration).
+*   **Role**: It strictly isolates operational telemetry (turns) from Personal Identifiable Information (PII). When data is exported for research, the `SessionTracker` output is aggressively stripped of identifiers to support Differential Privacy.
 
 ## 4. Edge Case Management
 

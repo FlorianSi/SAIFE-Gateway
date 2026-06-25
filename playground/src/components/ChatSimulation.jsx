@@ -1,7 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
+import { getSafeTopic, escapeXML } from '../utils/sanitize';
 
-const ChatSimulation = ({ config, chatLog, setChatLog, addLog, clearLogs, setCurrentPrompt, t }) => {
+const ChatSimulation = ({ config, chatLog, setChatLog, addLog, clearLogs, setCurrentPrompt, session, setSession, t, lang }) => {
   const [scenarioCategory, setScenarioCategory] = useState('security');
+  const timeoutRefs = useRef([]);
+
+  useEffect(() => {
+    return () => {
+      timeoutRefs.current.forEach(clearTimeout);
+    };
+  }, []);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -18,7 +26,7 @@ const ChatSimulation = ({ config, chatLog, setChatLog, addLog, clearLogs, setCur
     setChatLog(prev => [...prev, { sender: 'student', text: t.chatStudentHomework }]);
     
     // Update Pipeline Prompt
-    setCurrentPrompt(`<Layer1>\nPolicies: ${config.layer1Enabled ? 'active' : 'INACTIVE (Guard-Engine disabled)'}\n</Layer1>\n<Layer2>\nRole: Socratic Tutor\n</Layer2>\n<Layer3>\nMode: ${config.didacticMode}\nGhostwriting: ${config.ghostwritingPolicy}\n</Layer3>\n<Layer4>\nInput: ${t.chatStudentHomework}\n</Layer4>`);
+    setCurrentPrompt(`<Layer1>\nPolicies: ${config.layer1Enabled ? 'active' : 'INACTIVE (Guard-Engine disabled)'}\n</Layer1>\n<Layer2>\nRole: Socratic Tutor\n</Layer2>\n<Layer3>\nMode: ${config.didacticMode}\nGhostwriting: ${config.ghostwritingPolicy}\n</Layer3>\n<Layer4>\nInput: ${escapeXML(t.chatStudentHomework)}\n</Layer4>`);
 
     setTimeout(() => {
       if (config.layer1Enabled) {
@@ -90,16 +98,22 @@ const ChatSimulation = ({ config, chatLog, setChatLog, addLog, clearLogs, setCur
     }
 
     setChatLog(prev => [...prev, { sender: 'student', text: t.chatStudentCompetency }]);
-    setCurrentPrompt(`<Layer3>\nMode: ${config.didacticMode}\n</Layer3>\n<Layer4>\nInput: ${t.chatStudentCompetency}\n</Layer4>`);
+    setCurrentPrompt(`<Layer3>\nMode: ${config.didacticMode}\n</Layer3>\n<Layer4>\nInput: ${escapeXML(t.chatStudentCompetency)}\n</Layer4>`);
 
-    setTimeout(() => {
+    const tid = setTimeout(() => {
       if (config.layer1Enabled) {
-        addLog({ type: 'stream1', category: 'competency', text: '[STREAM 1] Event: aha_moment. Competency Demonstrated: Linear Equations.' });
-        setChatLog(prev => [...prev, { sender: 'success', text: t.chatAiCompetency }]);
+        addLog({ 
+          type: 'stream1', 
+          category: 'competency', 
+          text: '[STREAM 1] Structured Event Logged.',
+          payload: { event: 'aha_moment', topicId: getSafeTopic(config.focusTopic), sentiment: 'positive' }
+        });
+        setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiCompetency }]);
       } else {
         setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiCompetencyBypass }]);
       }
     }, 1000);
+    timeoutRefs.current.push(tid);
   };
 
   const simulatePii = () => {
@@ -131,16 +145,22 @@ const ChatSimulation = ({ config, chatLog, setChatLog, addLog, clearLogs, setCur
       return;
     }
     setChatLog(prev => [...prev, { sender: 'student', text: t.chatStudentFrustration }]);
-    setCurrentPrompt(`<Layer3>\nMode: ${config.didacticMode}\n</Layer3>\n<Layer4>\nInput: ${t.chatStudentFrustration}\n</Layer4>`);
+    setCurrentPrompt(`<Layer3>\nMode: ${config.didacticMode}\n</Layer3>\n<Layer4>\nInput: ${escapeXML(t.chatStudentFrustration)}\n</Layer4>`);
 
-    setTimeout(() => {
+    const tid = setTimeout(() => {
       if (config.layer1Enabled) {
-        addLog({ type: 'stream1', category: 'frustration', text: t.logFrustration });
+        addLog({ 
+          type: 'stream1', 
+          category: 'frustration', 
+          text: '[STREAM 1] Structured Event Logged.',
+          payload: { event: 'high_frustration', topicId: getSafeTopic(config.focusTopic), sentiment: 'negative', action: 'adjust_pedagogical_tone' }
+        });
         setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiFrustration }]);
       } else {
         setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiFrustrationBypass }]);
       }
     }, 1000);
+    timeoutRefs.current.push(tid);
   };
 
   const simulateMisconception = () => {
@@ -150,16 +170,22 @@ const ChatSimulation = ({ config, chatLog, setChatLog, addLog, clearLogs, setCur
       return;
     }
     setChatLog(prev => [...prev, { sender: 'student', text: t.chatStudentMisconception }]);
-    setCurrentPrompt(`<Layer3>\nMode: ${config.didacticMode}\n</Layer3>\n<Layer4>\nInput: ${t.chatStudentMisconception}\n</Layer4>`);
+    setCurrentPrompt(`<Layer3>\nMode: ${config.didacticMode}\n</Layer3>\n<Layer4>\nInput: ${escapeXML(t.chatStudentMisconception)}\n</Layer4>`);
 
-    setTimeout(() => {
+    const tid = setTimeout(() => {
       if (config.layer1Enabled) {
-        addLog({ type: 'stream1', category: 'misconception', text: t.logMisconception });
+        addLog({ 
+          type: 'stream1', 
+          category: 'misconception', 
+          text: '[STREAM 1] Structured Event Logged.',
+          payload: { event: 'structural_misconception', topicId: getSafeTopic(config.focusTopic) }
+        });
         setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiMisconception }]);
       } else {
         setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiMisconceptionBypass }]);
       }
     }, 1000);
+    timeoutRefs.current.push(tid);
   };
 
   const simulateCuriosity = () => {
@@ -169,16 +195,92 @@ const ChatSimulation = ({ config, chatLog, setChatLog, addLog, clearLogs, setCur
       return;
     }
     setChatLog(prev => [...prev, { sender: 'student', text: t.chatStudentCuriosity }]);
-    setCurrentPrompt(`<Layer3>\nMode: ${config.didacticMode}\n</Layer3>\n<Layer4>\nInput: ${t.chatStudentCuriosity}\n</Layer4>`);
+    setCurrentPrompt(`<Layer3>\nMode: ${config.didacticMode}\n</Layer3>\n<Layer4>\nInput: ${escapeXML(t.chatStudentCuriosity)}\n</Layer4>`);
 
-    setTimeout(() => {
+    const tid = setTimeout(() => {
       if (config.layer1Enabled) {
-        addLog({ type: 'stream1', category: 'curiosity', text: t.logCuriosity });
+        addLog({ 
+          type: 'stream1', 
+          category: 'curiosity', 
+          text: '[STREAM 1] Structured Event Logged.',
+          payload: { event: 'high_curiosity', topicId: getSafeTopic(config.focusTopic), action: 'encourage_and_refocus' }
+        });
         setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiCuriosity }]);
       } else {
         setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiCuriosityBypass }]);
       }
     }, 1000);
+    timeoutRefs.current.push(tid);
+  };
+
+  const simulateStruggle = () => {
+    if (config.simulateSignatureFail && config.layer1Enabled) {
+      addLog({ type: 'emergency', category: 'struggle', text: '[GATEWAY] Alert: PKI Signature Invalid. Hard fail-closed triggered.' });
+      setChatLog(prev => [...prev, { sender: 'student', text: t.chatStudentStruggle }, { sender: 'system', text: t.chatSystemError }]);
+      return;
+    }
+    
+    setChatLog(prev => [...prev, { sender: 'student', text: t.chatStudentStruggle }]);
+    setCurrentPrompt(`<Layer3>\nFocus Topic: ${config.focusTopic}\n</Layer3>\n<Layer4>\nInput: ${escapeXML(t.chatStudentStruggle)}\n</Layer4>`);
+
+    setSession(prev => ({ ...prev, turnIndex: prev.turnIndex + 1 }));
+
+    const tid = setTimeout(() => {
+      if (config.layer1Enabled) {
+        setSession(currentSession => {
+          const currentTurn = currentSession.turnIndex;
+          if (currentTurn >= config.struggleThreshold) {
+            addLog({ 
+              type: 'stream1', 
+              category: 'struggle', 
+              text: '[STREAM 1] Structured Event Logged.',
+              payload: { event: 'struggle_recommendation', topicId: getSafeTopic(config.focusTopic), action: 'advisory_alert_sent' }
+            });
+            setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiStruggle }]);
+            return { ...currentSession, turnIndex: 0 };
+          } else {
+            addLog({ 
+              type: 'stream1', 
+              category: 'struggle', 
+              text: '[STREAM 1] Structured Event Logged.',
+              payload: { event: 'incorrect_attempt', topicId: getSafeTopic(config.focusTopic), attemptCount: currentTurn, maxThreshold: config.struggleThreshold }
+            });
+            setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiStruggle }]);
+            return currentSession;
+          }
+        });
+      } else {
+        setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiStruggleBypass }]);
+      }
+    }, 1000);
+    timeoutRefs.current.push(tid);
+  };
+
+  const simulateOffTopic = () => {
+    if (config.simulateSignatureFail && config.layer1Enabled) {
+      addLog({ type: 'emergency', category: 'offtopic', text: '[GATEWAY] Alert: PKI Signature Invalid. Hard fail-closed triggered.' });
+      setChatLog(prev => [...prev, { sender: 'student', text: t.chatStudentOffTopic }, { sender: 'system', text: t.chatSystemError }]);
+      return;
+    }
+    setChatLog(prev => [...prev, { sender: 'student', text: t.chatStudentOffTopic }]);
+    setCurrentPrompt(`<Layer3>\nFocus Topic: ${config.focusTopic}\n</Layer3>\n<Layer4>\nInput: ${escapeXML(t.chatStudentOffTopic)}\n</Layer4>`);
+
+    setSession(prev => ({ ...prev, turnIndex: prev.turnIndex + 1 }));
+
+    const tid = setTimeout(() => {
+      if (config.layer1Enabled) {
+        addLog({ 
+          type: 'stream1', 
+          category: 'offtopic', 
+          text: '[STREAM 1] Structured Event Logged.',
+          payload: { event: 'off_topic_detected', topicId: getSafeTopic(config.focusTopic), action: 'redirecting_to_focus' }
+        });
+        setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiOffTopic }]);
+      } else {
+        setChatLog(prev => [...prev, { sender: 'ai', text: t.chatAiOffTopicBypass }]);
+      }
+    }, 1000);
+    timeoutRefs.current.push(tid);
   };
 
   const clearChat = () => {
@@ -242,6 +344,8 @@ const ChatSimulation = ({ config, chatLog, setChatLog, addLog, clearLogs, setCur
                 <button className="btn btn-frustration" onClick={simulateFrustration}>{t.btnFrustration}</button>
                 <button className="btn btn-misconception" onClick={simulateMisconception}>{t.btnMisconception}</button>
                 <button className="btn btn-curiosity" onClick={simulateCuriosity}>{t.btnCuriosity}</button>
+                <button className="btn btn-struggle" onClick={simulateStruggle}>{t.btnStruggle}</button>
+                <button className="btn btn-offtopic" onClick={simulateOffTopic}>{t.btnOffTopic}</button>
               </>
             )}
           </div>

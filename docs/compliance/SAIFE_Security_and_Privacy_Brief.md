@@ -1,12 +1,12 @@
 # SAIFE Security, Privacy & Policy Brief
 
 ## Executive Summary
-This document outlines the security architecture and data protection mechanisms of the SAIFE Gateway (Safe AI Framework for Education). It provides the legal, technical, and operational facts necessary for drafting legally compliant Privacy Policies (Datenschutzerklärungen) and conducting Data Protection Impact Assessments (DPIA / DSFA). 
+This document outlines the security architecture and data protection mechanisms of the SAIFE Gateway (Safe AI Framework for Education). It provides the legal, technical, and operational facts necessary for drafting legally compliant Privacy Policies (Datenschutzerklärungen) and conducting Data Protection Impact Assessments (Data Protection Impact Assessment - DPIA / Datenschutz-Folgenabschätzung - DSFA). 
 
 > [!WARNING]
 > In the rapidly evolving domain of Large Language Models (LLMs), absolute security and waterproof data protection cannot be completely guaranteed. SAIFE implements state-of-the-art defense-in-depth mechanisms to mitigate foreseeable risks, but operates under the premise of continuous review and real-world adaptation.
 
-## 1. Data Protection & Privacy (GDPR / DSGVO)
+## 1. Data Protection & Privacy (General Data Protection Regulation - GDPR / Datenschutz-Grundverordnung - DSGVO)
 
 ### 1.1 Data Flows and Processing Perimeter
 Operators must ensure that end-user (student) interactions are processed in a transparent, minimally invasive manner. 
@@ -46,7 +46,14 @@ The optional `@saife/guard-engine` microservice does not introduce a higher "tie
 When drafting a Privacy Policy (Datenschutzerklärung) for a SAIFE-powered deployment, operators must include:
 1. **Purpose of Processing:** Real-time evaluation of educational inputs.
 2. **Anonymization Strategy:** Explicit mention of Differential Privacy (Laplacian noise) for any retained analytics.
-3. **Third-Party Disclosures:** If the deployment routes prompts to external LLM providers (e.g., OpenAI, Anthropic), operators must secure Data Processing Agreements (AVVs) with those vendors and disclose the data flow.
+3. **Third-Party Disclosures:** If the deployment routes prompts to external LLM providers (e.g., OpenAI, Anthropic), operators must secure Data Processing Agreements (Auftragsverarbeitungsverträge - AVVs) with those vendors and disclose the data flow.
 4. **Retention Policies:** Chat histories should be subject to strict TTL (Time-To-Live) constraints and purged after the pedagogical session concludes, unless explicitly opted into for research under Differential Privacy protocols.
+
+### 4.1 Transparency for Pedagogical Telemetry & Directives
+When enabling the StruggleTracker or Focus Directives features, operators face additional compliance burdens:
+- **Art. 13/14 GDPR Transparency:** The Privacy Policy must explicitly state that the system evaluates learning progress (Struggle Detection) and that teachers can set specific instructional foci (Focus Directives) for individual students.
+- **Formative vs. Summative (Human-in-the-loop):** Operators must guarantee (and document) that any "learning_signal" or "struggle_recommendation" is strictly formative. The StruggleTracker operates in an "advisory-only" mode. Teachers MUST review and confirm these recommendations before any change in AI behavior or student record occurs, satisfying Art. 22 GDPR and Art. 14 EU AI Act.
+- **Data Minimization (Session Tracking):** By default, telemetry is limited to pedagogical milestones. Enabling per-turn, continuous tracking requires a separate DPIA by the operator.
+- **Art. 15/17 GDPR (Access & Erasure):** Because Focus Directives reflect a teacher's evaluation of a student's needs, they constitute personal data. The operator must ensure the LMS can fulfill Subject Access Requests (SARs) and deletion requests for these directives. SAIFE enforces a maximum 30-day TTL to assist with compliance.
 
 ---

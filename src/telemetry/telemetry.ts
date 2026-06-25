@@ -45,6 +45,16 @@ export interface ContextSummary {
   additional_metadata?: Record<string, string | number | boolean>;
 }
 
+/**
+ * Strict structural type for Research Events (Stream 2).
+ * Compilation-time guarantee that fields like sessionId, turnIndex,
+ * studentId, or free-text topics are NEVER passed to the research endpoint.
+ */
+export interface Stream2SafeContext {
+  difficulty_level: number;
+  duration_seconds: number;
+}
+
 export type Stream1WelfareEventType = 'struggle_detected' | 'soft_alert';
 export type Stream1AcademicEventType =
   | 'learning_signal'
@@ -85,7 +95,7 @@ export interface Stream2Event {
   type: 'research_metric';
   timestamp: string;
   // Intentionally omitting studentId to enforce anonymity
-  context_summary: ContextSummary;
+  context_summary: Stream2SafeContext;
 }
 
 export interface EmergencyEvent {
@@ -220,7 +230,8 @@ export class TelemetryEngine {
     }
 
     if (!bucket.consume()) {
-      console.warn(`[TELEMETRY] Rate limit exceeded for student ${studentId}. Dropping event.`);
+      const truncatedHash = Buffer.from(studentId).toString('base64').substring(0, 8);
+      console.warn(`[TELEMETRY] Rate limit exceeded for student hash ${truncatedHash}... Dropping event.`);
       return;
     }
 
@@ -245,8 +256,8 @@ export class TelemetryEngine {
    *
    * Grouping (k-anonymity) is deferred to the server;
    */
-  public async emitResearchEvent(contextSummary: ContextSummary): Promise<void> {
-    const anonymizedContext = this.applyLocalDifferentialPrivacy(contextSummary);
+  public async emitResearchEvent(safeContext: Stream2SafeContext): Promise<void> {
+    const anonymizedContext = this.applyLocalDifferentialPrivacy(safeContext);
 
     const payload: Stream2Event = {
       type: 'research_metric',
@@ -336,17 +347,14 @@ export class TelemetryEngine {
    * Adds Laplacian noise to numeric fields only.
    * All string fields are stripped before research emission to prevent re-identification.
    */
-  private applyLocalDifferentialPrivacy(summary: ContextSummary): ContextSummary {
+  private applyLocalDifferentialPrivacy(safeContext: Stream2SafeContext): Stream2SafeContext {
     const epsilon = this.config.epsilon!;
 
     // Only numeric fields are retained for research. All string fields are dropped
     // to prevent auxiliary linkage attacks (topic + timestamp = session fingerprint).
-    const anonymized: ContextSummary = {
-      topic: '', // Stripped: replaced with empty string to maintain interface shape
-      difficulty_level: this.addLaplaceNoise(summary.difficulty_level, 1, epsilon),
-      duration_seconds: Math.max(0, this.addLaplaceNoise(summary.duration_seconds, 60, epsilon)),
-      // observed_skill_indicator: deliberately omitted (string, re-identification risk)
-      // identified_barrier: deliberately omitted (string, re-identification risk)
+    const anonymized: Stream2SafeContext = {
+      difficulty_level: this.addLaplaceNoise(safeContext.difficulty_level, 1, epsilon),
+      duration_seconds: Math.max(0, this.addLaplaceNoise(safeContext.duration_seconds, 60, epsilon)),
     };
 
     return anonymized;

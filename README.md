@@ -40,11 +40,17 @@ If you find vulnerabilities or have ideas for improvement, please open an Issue 
 
 ## 📖 Documentation
 
-For a deep dive into the proposed architecture, compliance, and setup of the SAIFE Gateway, please read my specialized documents:
+For a deep dive into the proposed architecture, compliance, and setup of the SAIFE Gateway, please read the specialized documents logically structured in the `docs` directory:
 
-- 🛠️ [SAIFE Technical Specification](local_docs/SAIFE_Technical_Specification.md) – A developer-facing document with full API contracts, DSL schemas, and setup parameters.
-- 🛡️ [SAIFE Security, Privacy & Policy Brief](local_docs/SAIFE_Security_Privacy_Brief.md) – A compliance-focused document for DPOs and certification bodies, covering GDPR, EU AI Act, and Differential Privacy constraints.
-- 📝 [SAIFE_Technical_Paper.md](./SAIFE_Technical_Paper.md) (Original Technical & Pedagogical Blueprint)
+### Compliance & Legal
+- 🛡️ [SAIFE Security and Privacy Brief](docs/compliance/SAIFE_Security_and_Privacy_Brief.md) – A compliance-focused document for Data Protection Officers and certification bodies, covering GDPR, EU AI Act, and Differential Privacy constraints.
+- ⚖️ [SAIFE Data Protection Impact Assessment](docs/compliance/SAIFE_Data_Protection_Impact_Assessment.md) – Formal Data Protection Impact Assessment (DSGVO Art. 35) outlining risks and mitigations for core features.
+
+### Architecture & Engineering
+- 🛠️ [SAIFE Technical Specification](docs/technical/SAIFE_Technical_Specification.md) – A developer-facing document with full API contracts, Domain Specific Language (DSL) schemas, and setup parameters.
+
+### Archive
+- 📝 [Original Technical Paper](docs/archive/SAIFE_Technical_Paper_Original.md) – The original monolithic blueprint, now superseded by the documents above.
 
 ## 🛠️ Repository Structure
 

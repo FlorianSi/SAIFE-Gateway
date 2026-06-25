@@ -42,6 +42,10 @@
   --color-misconception-dim: rgba(14, 165, 233, 0.12);
   --color-curiosity: #6366F1;
   --color-curiosity-dim: rgba(99, 102, 241, 0.12);
+  --color-struggle: #D946EF;
+  --color-struggle-dim: rgba(217, 70, 239, 0.12);
+  --color-offtopic: #84CC16;
+  --color-offtopic-dim: rgba(132, 204, 22, 0.12);
 
   --header-h: 72px;
 }
@@ -264,7 +268,7 @@ body {
   margin-bottom: 0.5rem;
 }
 
-select, input[type="text"] {
+select, input[type="text"], input[type="number"] {
   background-color: var(--bg-input);
   border: 1px solid var(--border);
   color: var(--text-primary);
@@ -277,7 +281,7 @@ select, input[type="text"] {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-select:focus, input[type="text"]:focus {
+select:focus, input[type="text"]:focus, input[type="number"]:focus {
   border-color: var(--border-active);
   box-shadow: 0 0 0 2px var(--accent-glow);
 }
@@ -568,6 +572,38 @@ pre {
   min-height: 0;
 }
 
+/* ─── SESSION TRACKER UI ─── */
+.session-tracker-box {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.8rem;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+}
+
+.tracker-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.tracker-label {
+  color: var(--text-secondary);
+}
+
+.tracker-value {
+  color: var(--text-primary);
+}
+
+.highlight-turn {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 /* ─── TELEMETRY LOGS ─── */
 .log-entry {
   font-family: 'JetBrains Mono', monospace;
@@ -803,6 +839,26 @@ pre {
   border-color: var(--color-curiosity);
 }
 
+.btn.btn-struggle {
+  background: var(--color-struggle-dim);
+  color: var(--color-struggle);
+  border-color: rgba(217, 70, 239, 0.35);
+}
+.btn.btn-struggle:hover {
+  background: rgba(217, 70, 239, 0.25);
+  border-color: var(--color-struggle);
+}
+
+.btn.btn-offtopic {
+  background: var(--color-offtopic-dim);
+  color: var(--color-offtopic);
+  border-color: rgba(132, 204, 22, 0.35);
+}
+.btn.btn-offtopic:hover {
+  background: rgba(132, 204, 22, 0.25);
+  border-color: var(--color-offtopic);
+}
+
 /* Log Category Overrides */
 .log-entry.log-cat-ghostwriting {
   border-left: 3px solid var(--color-ghostwriting);
@@ -835,6 +891,14 @@ pre {
 .log-entry.log-cat-curiosity {
   border-left: 3px solid var(--color-curiosity);
   background-color: rgba(99, 102, 241, 0.05);
+}
+.log-entry.log-cat-struggle {
+  border-left: 3px solid var(--color-struggle);
+  background-color: rgba(217, 70, 239, 0.05);
+}
+.log-entry.log-cat-offtopic {
+  border-left: 3px solid var(--color-offtopic);
+  background-color: rgba(132, 204, 22, 0.05);
 }
 
 /* ─── XML CODE HIGHLIGHTING ─── */

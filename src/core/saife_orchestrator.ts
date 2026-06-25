@@ -7,6 +7,9 @@ import { PromptCompiler, PromptLayers } from './prompt_compiler';
 import { StreamInspector } from './stream_inspector';
 import { CrisisHandler } from './crisis_handler';
 import { TelemetryEngine, ContextSummary } from '../telemetry/telemetry';
+import { StruggleTracker } from './struggle_tracker';
+import { SessionContext } from '../telemetry/session_tracker';
+import { TeacherFocusDirective } from './focus_directive';
 
 export interface OrchestratorOptions {
   quarantineSize?: number;
@@ -18,6 +21,7 @@ export interface LLMMockResponse {
   tokens: string[];
   toolCalls?: { name: string; args: Record<string, unknown> }[];
   didacticViolations?: string[];
+  progressDetected?: boolean;
 }
 
 export class SaifeOrchestrator {
@@ -25,6 +29,7 @@ export class SaifeOrchestrator {
   private promptCompiler: PromptCompiler;
   private crisisHandler: CrisisHandler;
   private telemetryEngine?: TelemetryEngine;
+  private struggleTrackers = new Map<string, StruggleTracker>();
   private options: OrchestratorOptions;
 
   constructor(options: OrchestratorOptions = {}) {
@@ -43,7 +48,11 @@ export class SaifeOrchestrator {
     contextSummary: ContextSummary,
     layers: PromptLayers, 
     mockLLM: () => Promise<LLMMockResponse>,
-    encryptionKey?: CryptoKey // Required if emergency events need to be emitted
+    encryptionKey?: CryptoKey, // Required if emergency events need to be emitted
+    sessionContext?: SessionContext,
+    focusDirectives?: TeacherFocusDirective[],
+    struggleThreshold: number = 3,
+    fallbackPolicy: 'offer_hint' | 'direct_correction' | 'step_back' = 'offer_hint'
   ): Promise<void> {
     // 1. Pre-Flight Check
     const preflight = await this.preflightGate.analyze(layers.userInput);
@@ -68,6 +77,9 @@ export class SaifeOrchestrator {
     }
 
     // 2. Prompt Compilation
+    if (focusDirectives) {
+      layers.focusDirectives = focusDirectives;
+    }
     const compiledMessages = this.promptCompiler.compile(layers);
     
     // Setup Streaming & Abort Control for this specific request
@@ -107,6 +119,42 @@ export class SaifeOrchestrator {
             }
           });
         }
+      }
+
+      // Struggle Tracking (F1)
+      let tracker = this.struggleTrackers.get(studentId);
+      if (!tracker) {
+        tracker = new StruggleTracker();
+        this.struggleTrackers.set(studentId, tracker);
+      }
+
+      const progress = response.progressDetected ?? true;
+      const recommendation = tracker.evaluateTurn(
+        progress, 
+        struggleThreshold, 
+        fallbackPolicy, 
+        response.didacticViolations?.join(', ')
+      );
+
+      if (recommendation && this.telemetryEngine) {
+        // Emit recommendation
+        await this.telemetryEngine.emitInstitutionalEvent({
+          type: 'struggle_recommendation',
+          is_formative_only: true,
+          studentId,
+          context_summary,
+          recommendation
+        } as any); // Cast to any to bypass strict type here if api_types was not fully synced to Stream1Event yet
+      }
+
+      // Handle Focus Directives Mastery (F2)
+      if (progress && focusDirectives && focusDirectives.length > 0 && this.telemetryEngine) {
+        await this.telemetryEngine.emitInstitutionalEvent({
+          type: 'focus_progress',
+          is_formative_only: true,
+          studentId,
+          context_summary
+        } as any);
       }
 
       // Hard-Interrupt Check
