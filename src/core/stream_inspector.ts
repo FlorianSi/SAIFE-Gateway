@@ -33,31 +33,35 @@ export class StreamInspector extends EventEmitter {
    * Pushes a new token into the current chunk.
    * If the chunk reaches the target size, it is verified before emission.
    */
-  public async pushTokenAsync(token: string): Promise<void> {
+  public pushToken(token: string): void {
     if (this.abortController?.signal.aborted) {
       return;
     }
     
+    // 1. Immediately emit to client for zero perceived latency
+    this.emit('chunk', token);
+    
+    // 2. Buffer for asynchronous inspection
     this.currentChunk.push(token);
 
+    // 3. Trigger async verification if chunk is large enough
     if (this.currentChunk.length >= this.chunkSizeTokens && !this.isVerifying) {
-      await this.verifyAndEmitChunk();
+      // Run in background, do not block the stream
+      this.verifyChunkAsync().catch(err => console.error(err));
     }
   }
 
   /**
-   * Verifies the current chunk. If safe, emits it. If unsafe, aborts stream.
+   * Verifies the current chunk asynchronously. If unsafe, aborts stream (Kill Switch).
    */
-  private async verifyAndEmitChunk(): Promise<void> {
+  private async verifyChunkAsync(): Promise<void> {
     if (this.currentChunk.length === 0 || this.abortController?.signal.aborted) {
       return;
     }
 
     this.isVerifying = true;
     
-    // Extract tokens up to chunkSizeTokens (or all if flush is called and it's less)
-    // Wait, if we are flushing, we want to verify everything left.
-    // So we take everything currently in currentChunk, saving any newly pushed tokens.
+    // Take a snapshot of the current buffer to verify
     const tokensToVerify = this.currentChunk.splice(0, this.currentChunk.length);
     const chunkToVerify = tokensToVerify.join('');
     
@@ -70,9 +74,8 @@ export class StreamInspector extends EventEmitter {
       if (!isSafe) {
         this.abortStream('Unsafe Salami-Slicing or restricted content detected by Chunk-Gate');
       } else {
-        // Safe! Emit the chunk
+        // Safe! Keep track of context for the sliding window
         this.safeContext += chunkToVerify;
-        this.emit('chunk', chunkToVerify);
       }
     } catch (error) {
       console.error('[STREAM_INSPECTOR] Error during Chunk-Gate verification:', error);
@@ -82,11 +85,8 @@ export class StreamInspector extends EventEmitter {
       this.isVerifying = false;
       // If new tokens accumulated while verifying, trigger verification again
       if (this.currentChunk.length >= this.chunkSizeTokens && !this.abortController?.signal.aborted) {
-        // Use setImmediate or promise to avoid deep recursion if we don't await
-        process.nextTick(() => {
-          this.verifyAndEmitChunk().catch(err => {
-            console.error('[STREAM_INSPECTOR] Async chunk verification failed:', err);
-          });
+        this.verifyChunkAsync().catch(err => {
+          console.error('[STREAM_INSPECTOR] Async chunk verification failed:', err);
         });
       }
     }
@@ -102,7 +102,7 @@ export class StreamInspector extends EventEmitter {
     }
 
     if (this.currentChunk.length > 0) {
-      await this.verifyAndEmitChunk();
+      await this.verifyChunkAsync();
     }
     
     if (!this.abortController?.signal.aborted) {

@@ -3,14 +3,14 @@
  * Enforces separation of concerns between safety, persona, and didactic layers.
  */
 
-import { TeacherFocusDirective } from './focus_directive';
+// Removed TeacherFocusDirective import since directives are compiled before reaching the compiler
 
 export interface PromptLayers {
   safetyLayer: string;   // Layer 1
   personaLayer: string;  // Layer 2
   didacticLayer: string; // Layer 3
   userInput: string;     // Layer 4
-  focusDirectives?: TeacherFocusDirective[];
+  compiledFocusDirectives?: string[];
 }
 
 export interface CompiledMessage {
@@ -30,29 +30,22 @@ export class PromptCompiler {
       layers.safetyLayer,
       layers.personaLayer,
       layers.didacticLayer,
-      layers.focusDirectives
+      layers.compiledFocusDirectives
     );
 
     return [
       { role: 'system', content: systemContent },
-      { role: 'user', content: layers.userInput }
+      { role: 'user', content: `<user_input>\n${layers.userInput}\n</user_input>` }
     ];
   }
 
-  private buildSystemContent(safety: string, persona: string, didactic: string, focusDirectives?: TeacherFocusDirective[]): string {
+  private buildSystemContent(safety: string, persona: string, didactic: string, compiledFocusDirectives?: string[]): string {
     // Basic sanitization to prevent boundary collapse
     const sanitize = (text: string) => text.replace(/<\/?(safety_rules|persona|didactic_guidelines|teacher_focus)>/gi, '');
     
     let focusContent = '';
-    if (focusDirectives && focusDirectives.length > 0) {
-      const directivesList = focusDirectives.map(fd => {
-        let str = `- Topic: ${sanitize(fd.focusTopic)}`;
-        if (fd.preferredStrategy) str += ` (Strategy: ${fd.preferredStrategy})`;
-        if (fd.targetObjectives?.length) {
-          str += `\n  Objectives: ${fd.targetObjectives.map(o => sanitize(o)).join(', ')}`;
-        }
-        return str;
-      }).join('\n');
+    if (compiledFocusDirectives && compiledFocusDirectives.length > 0) {
+      const directivesList = compiledFocusDirectives.join('\n\n');
       focusContent = `\n\n<teacher_focus>\nThese instructions take precedence over general didactic guidelines for the specified topics:\n${directivesList}\n</teacher_focus>`;
     }
 

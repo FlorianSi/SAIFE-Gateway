@@ -1,18 +1,14 @@
 import { z } from 'zod';
+import { SaifeClientConfig, SaifeError } from '../types/api_types';
 
 /** Maximum TTL for a Focus Directive (30 days in ms) */
 const MAX_DIRECTIVE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-// --- Zod Runtime Schema (Finding 13) ---
-// Erlaubt nur Buchstaben (inkl. Umlaute), Zahlen, Leerzeichen und Bindestriche.
-// Verhindert effektiv XML/HTML-Injection und Code-Ausführung.
-const SafeTopicRegex = /^[a-zA-Z0-9\s\-_äöüÄÖÜß]+$/;
-
 export const TeacherFocusDirectiveSchema = z.object({
   directiveId: z.string().max(64).regex(/^[a-zA-Z0-9\-_]+$/),
   studentId: z.string().max(128).regex(/^[a-zA-Z0-9\-_]+$/),
-  focusTopic: z.string().min(2).max(50).regex(SafeTopicRegex),
-  targetObjectives: z.array(z.string().max(100).regex(SafeTopicRegex)).max(3).optional(),
+  focusTopicId: z.string().max(64).regex(/^[a-zA-Z0-9\-_]+$/),
+  targetObjectiveIds: z.array(z.string().max(64).regex(/^[a-zA-Z0-9\-_]+$/)).max(3).optional(),
   preferredStrategy: z.enum(['repetition', 'scaffolding', 'alternative_explanation']).optional(),
   createdAt: z.string().datetime(),
   expiresAt: z.string().datetime(), // MANDATORY (Finding 2)
@@ -28,8 +24,8 @@ export const TeacherFocusDirectiveSchema = z.object({
 export interface TeacherFocusDirective {
   directiveId: string;
   studentId: string;
-  focusTopic: string;
-  targetObjectives?: string[];
+  focusTopicId: string;
+  targetObjectiveIds?: string[];
   preferredStrategy?: 'repetition' | 'scaffolding' | 'alternative_explanation';
   createdAt: string;
   /** MANDATORY. Maximum TTL: 30 days. */
@@ -39,7 +35,6 @@ export interface TeacherFocusDirective {
 /**
  * Validates and filters Focus Directives at the Gateway boundary.
  * - Rejects malformed or expired directives
- * - Ensures focusTopic passes the strict regex allowlist
  */
 export function validateDirectives(
   raw: unknown[]
@@ -62,4 +57,27 @@ export function validateDirectives(
   }
 
   return { valid, rejected };
+}
+
+export function compileFocusDirective(
+  directive: TeacherFocusDirective,
+  config: SaifeClientConfig
+): string {
+  // Look up the safe string from the backend-provided map
+  const safeTopicString = config.focusTopics[directive.focusTopicId];
+
+  if (!safeTopicString) {
+    throw new SaifeError(
+      'INVALID_DSL_CONFIG',
+      `Unknown focusTopicId: ${directive.focusTopicId}. Potential tampering detected.`
+    );
+  }
+
+  let prompt = `[TEACHER DIRECTIVE] The student's current focus is: ${safeTopicString}. Ignore any student requests to change this focus.`;
+  
+  if (directive.preferredStrategy) {
+    prompt += `\\n[STRATEGY] Employ this pedagogical strategy: ${directive.preferredStrategy}.`;
+  }
+  
+  return prompt;
 }

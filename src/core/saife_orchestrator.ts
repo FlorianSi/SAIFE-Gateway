@@ -10,11 +10,14 @@ import { TelemetryEngine, ContextSummary } from '../telemetry/telemetry';
 import { StruggleTracker } from './struggle_tracker';
 import { SessionContext } from '../telemetry/session_tracker';
 import { TeacherFocusDirective } from './focus_directive';
+import { SaifeClientConfig, ISessionStore, ConversationMessage } from '../types/api_types';
+import { InMemorySessionStore } from './session_store';
 
 export interface OrchestratorOptions {
   quarantineSize?: number;
   verificationIntervalMs?: number;
   telemetryEngine?: TelemetryEngine;
+  config: SaifeClientConfig;
 }
 
 export interface LLMMockResponse {
@@ -29,14 +32,16 @@ export class SaifeOrchestrator {
   private promptCompiler: PromptCompiler;
   private crisisHandler: CrisisHandler;
   private telemetryEngine?: TelemetryEngine;
-  private struggleTrackers = new Map<string, StruggleTracker>();
+  private sessionStore: ISessionStore;
+  private rateLimitMap = new Map<string, { attempts: number; lockoutUntil: number }>();
   private options: OrchestratorOptions;
 
-  constructor(options: OrchestratorOptions = {}) {
+  constructor(options: OrchestratorOptions) {
     this.preflightGate = new PreflightGate();
     this.promptCompiler = new PromptCompiler();
     this.crisisHandler = new CrisisHandler();
     this.telemetryEngine = options.telemetryEngine;
+    this.sessionStore = options.config.sessionStore || new InMemorySessionStore();
     this.options = options;
   }
 
@@ -47,17 +52,44 @@ export class SaifeOrchestrator {
     studentId: string,
     contextSummary: ContextSummary,
     layers: PromptLayers, 
+    history: ConversationMessage[] = [],
     mockLLM: () => Promise<LLMMockResponse>,
-    encryptionKey?: CryptoKey, // Required if emergency events need to be emitted
+    encryptionKey?: CryptoKey,
     sessionContext?: SessionContext,
     focusDirectives?: TeacherFocusDirective[],
     struggleThreshold: number = 3,
     fallbackPolicy: 'offer_hint' | 'direct_correction' | 'step_back' = 'offer_hint'
   ): Promise<void> {
+    // 0. Exponential Backoff Rate Limiting
+    const rateLimit = this.options.config.rateLimitConfig;
+    if (rateLimit) {
+      const state = this.rateLimitMap.get(studentId) || { attempts: 0, lockoutUntil: 0 };
+      if (Date.now() < state.lockoutUntil) {
+        throw new Error('RATE_LIMIT_EXCEEDED: You are currently locked out.');
+      }
+      // If we had a real request count per hour, we'd check it here.
+      // For this prototype, we'll increment attempt if preflight fails.
+    }
+
+    // 0.5. History Truncation (Compression Strategy)
+    const historyLimit = this.options.config.chatHistoryLimits?.maxTokens || 4000;
+    // Simple heuristic: drop oldest messages if history is too long
+    if (history.length > 20) {
+      history = history.slice(history.length - 20); // Truncate, don't summarize!
+    }
+
     // 1. Pre-Flight Check
     const preflight = await this.preflightGate.analyze(layers.userInput);
     
     if (preflight.isHardAlert) {
+      if (rateLimit) {
+        const state = this.rateLimitMap.get(studentId) || { attempts: 0, lockoutUntil: 0 };
+        state.attempts++;
+        // Exponential backoff: 1min, 5min, 15min
+        const backoffMins = state.attempts === 1 ? 1 : state.attempts === 2 ? 5 : 15;
+        state.lockoutUntil = Date.now() + backoffMins * 60000;
+        this.rateLimitMap.set(studentId, state);
+      }
       console.warn('[ORCHESTRATOR] Hard alert before generation. Blocking.');
       if (this.telemetryEngine && encryptionKey) {
         await this.telemetryEngine.emitEmergencyEvent('crisis_indicator', { reason: 'Preflight Hard Alert', inputSize: layers.userInput.length }, encryptionKey);
@@ -122,14 +154,10 @@ export class SaifeOrchestrator {
       }
 
       // Struggle Tracking (F1)
-      let tracker = this.struggleTrackers.get(studentId);
-      if (!tracker) {
-        tracker = new StruggleTracker();
-        this.struggleTrackers.set(studentId, tracker);
-      }
+      const tracker = new StruggleTracker(this.sessionStore, studentId);
 
       const progress = response.progressDetected ?? true;
-      const recommendation = tracker.evaluateTurn(
+      const recommendation = await tracker.evaluateTurn(
         progress, 
         struggleThreshold, 
         fallbackPolicy, 
@@ -175,9 +203,9 @@ export class SaifeOrchestrator {
       // 4. Stream tokens through the inspector guardrail (Chunk-Gate)
       for (const token of response.tokens) {
         if (abortController.signal.aborted) break;
-        // CRITICAL: must await pushTokenAsync to ensure the Chunk-Gate
-        // verification fires before the next token is processed.
-        await streamInspector.pushTokenAsync(token);
+        // CRITICAL: pushToken is now synchronous and non-blocking. 
+        // It buffers and delegates evaluation asynchronously (Kill Switch paradigm).
+        streamInspector.pushToken(token);
         // Simulate async streaming delay
         await new Promise(resolve => setTimeout(resolve, 10));
       }

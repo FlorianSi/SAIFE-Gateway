@@ -22,8 +22,10 @@ export interface StruggleRecommendation {
   is_formative_only: true;
 }
 
+import { ISessionStore } from '../types/api_types';
+
 export class StruggleTracker {
-  private consecutiveFailures = 0;
+  constructor(private store: ISessionStore, private sessionId: string) {}
 
   /**
    * Called after each turn with the LLM's assessment of student progress.
@@ -32,25 +34,25 @@ export class StruggleTracker {
    * IMPORTANT: The recommendation must be sent to the dashboard for
    * teacher review. It must NOT be auto-executed by the orchestrator.
    */
-  evaluateTurn(
+  async evaluateTurn(
     progressDetected: boolean,
     threshold: number,
     fallbackPolicy: 'offer_hint' | 'direct_correction' | 'step_back',
     barrier?: string
-  ): StruggleRecommendation | null {
+  ): Promise<StruggleRecommendation | null> {
     if (progressDetected) {
-      this.consecutiveFailures = 0;
+      await this.store.resetStruggle(this.sessionId);
       return null;
     }
 
-    this.consecutiveFailures++;
+    const consecutiveFailures = await this.store.incrementStruggle(this.sessionId);
 
-    if (this.consecutiveFailures >= threshold) {
+    if (consecutiveFailures >= threshold) {
       return {
         type: 'struggle_recommendation',
         requiresTeacherConfirmation: true,
         recommendedAction: fallbackPolicy,
-        consecutiveTurnsWithoutProgress: this.consecutiveFailures,
+        consecutiveTurnsWithoutProgress: consecutiveFailures,
         identifiedBarrier: barrier,
         is_formative_only: true,
       };
@@ -59,7 +61,7 @@ export class StruggleTracker {
     return null;
   }
 
-  reset(): void {
-    this.consecutiveFailures = 0;
+  async reset(): Promise<void> {
+    await this.store.resetStruggle(this.sessionId);
   }
 }

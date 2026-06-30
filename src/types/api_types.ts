@@ -263,7 +263,7 @@ export type SaifeStreamEvent =
 
 export interface ChatHistoryConfig {
   maxTokens: number;
-  compressionStrategy: 'summarize' | 'truncate';
+  compressionStrategy: 'truncate';
   lostInTheMiddleMitigation: boolean;
 }
 
@@ -272,8 +272,16 @@ export interface RateLimitConfig {
   lockoutDurationMinutes: number;
 }
 
+export type FocusTopicMap = Record<string, string>;
+
+export interface ISessionStore {
+  incrementStruggle(sessionId: string): Promise<number>;
+  getStruggleCount(sessionId: string): Promise<number>;
+  resetStruggle(sessionId: string): Promise<void>;
+}
+
 export interface SaifeClientConfig {
-  /** API Key for model access. */
+  /** API Key for model access. Must be kept secure on the backend. */
   apiKey: string;
   /** Optional gRPC endpoint for the Guard-Engine microservice. */
   guardEngineEndpoint?: string; 
@@ -281,13 +289,18 @@ export interface SaifeClientConfig {
   chunkSizeTokens?: number; 
   chatHistoryLimits?: ChatHistoryConfig;
   rateLimitConfig?: RateLimitConfig;
+  
+  /** External storage for session state, defaults to InMemorySessionStore */
+  sessionStore?: ISessionStore;
+  /** Custom mapping of FocusTopic IDs to strings provided by the school */
+  focusTopics: FocusTopicMap;
 }
 
 export class SaifeError extends Error {
   code: 'RATE_LIMIT_EXCEEDED' | 'PRE_FLIGHT_REJECTION' | 'INVALID_DSL_CONFIG' | 'ENGINE_UNAVAILABLE';
-  details?: any;
+  details?: Record<string, unknown>;
   
-  constructor(code: 'RATE_LIMIT_EXCEEDED' | 'PRE_FLIGHT_REJECTION' | 'INVALID_DSL_CONFIG' | 'ENGINE_UNAVAILABLE', message: string, details?: any) {
+  constructor(code: 'RATE_LIMIT_EXCEEDED' | 'PRE_FLIGHT_REJECTION' | 'INVALID_DSL_CONFIG' | 'ENGINE_UNAVAILABLE', message: string, details?: Record<string, unknown>) {
     super(message);
     this.code = code;
     this.details = details;
@@ -297,7 +310,7 @@ export class SaifeError extends Error {
 export interface SaifeClient {
   executeStream(
     prompt: string,
-    history: any[],
+    history: ConversationMessage[],
     dslConfig: DslConfig
   ): AsyncIterable<SaifeStreamEvent>;
 }

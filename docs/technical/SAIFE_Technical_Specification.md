@@ -44,11 +44,16 @@ export interface SaifeClientConfig {
 
   chatHistoryLimits?: ChatHistoryConfig;
   rateLimitConfig?: RateLimitConfig;
+  
+  /** External storage for session state, defaults to InMemorySessionStore */
+  sessionStore?: ISessionStore;
+  /** Custom mapping of FocusTopic IDs to strings provided by the school */
+  focusTopics: Record<string, string>;
 }
 
 export interface ChatHistoryConfig {
   maxTokens: number;
-  compressionStrategy: 'summarize' | 'truncate';
+  compressionStrategy: 'truncate';
   lostInTheMiddleMitigation: boolean;
 }
 
@@ -77,8 +82,8 @@ export interface DslConfig {
 export interface TeacherFocusDirective {
   directiveId: string;
   studentId: string;
-  focusTopic: string; // Dynamically validated via strict regex allowlist
-  targetObjectives?: string[];
+  focusTopicId: string; // Must strictly match an ID in config.focusTopics
+  targetObjectiveIds?: string[];
   preferredStrategy?: 'repetition' | 'scaffolding' | 'alternative_explanation';
   createdAt: string;
   expiresAt: string; // Mandatory TTL constraint
@@ -102,13 +107,13 @@ export type SaifeStreamEvent =
 
 export class SaifeError extends Error {
   code: 'RATE_LIMIT_EXCEEDED' | 'PRE_FLIGHT_REJECTION' | 'INVALID_DSL_CONFIG' | 'ENGINE_UNAVAILABLE';
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 export interface SaifeClient {
   executeStream(
     prompt: string,
-    history: any[],
+    history: ConversationMessage[],
     dslConfig: DslConfig
   ): AsyncIterable<SaifeStreamEvent>;
 }
@@ -133,7 +138,7 @@ export interface SaifeClient {
 
 ### TeacherFocusDirective
 *   **Definition**: Specific, temporary instructional goals set by a teacher for a student.
-*   **Role of `focus_directive.ts`**: To prevent Prompt Injection through LMS-provided metadata, this module validates incoming directives using a strict regular expression (`^[a-zA-Z0-9\s\-_äöüÄÖÜß]+$`). Validated directives are then compiled securely into the system prompt.
+*   **Role of `focus_directive.ts`**: To completely eliminate metadata-based Prompt Injection and support robust international curricula, SAIFE completely eschews accepting raw strings (like "Algebra") from the frontend. Instead, the LMS passes a strict alphanumeric ID (`focusTopicId`, e.g., `'MATH_ALG_01'`). The SDK looks this up in a user-provided custom dictionary (`config.focusTopics`) passed during initialization. If the ID is invalid, it throws a strict validation error. This ensures SAIFE remains language-agnostic and curriculum-agnostic, while eliminating surface area for malicious overriding prompts.
 
 ### SessionTracker
 *   **Definition**: A utility (`session_tracker.ts`) to track the temporal progression of a conversation (turn index and duration).
@@ -143,11 +148,11 @@ export interface SaifeClient {
 
 ### 4.1 Chat History Management
 Passing unbounded history severely degrades system rule adherence in long sessions due to the LLM "Lost-in-the-Middle" phenomenon. 
-*   **Length Limits and Compression**: The Gateway enforces a strict boundary (`ChatHistoryConfig.maxTokens`). When the threshold is crossed, the `compressionStrategy` dynamically truncates or summarizes the oldest non-essential conversational context.
+*   **Length Limits and Compression**: The Gateway enforces a strict boundary (`ChatHistoryConfig.maxTokens`). When the threshold is crossed, the `compressionStrategy` dynamically truncates the oldest non-essential conversational context. We explicitly forbid "summarization" using LLMs, as this creates a critical attack vector where prompt injections hidden in older turns are laundered and permanently baked into the core context window by the summarizing model.
 *   **Lost-in-the-Middle Mitigation**: When `lostInTheMiddleMitigation` is true, the Gateway transparently re-injects the core pedagogical directive (derived from `DslConfig`) into the context window as a hidden system message (e.g., every 10 turns) to anchor the model's instructions.
 
 ### 4.2 Rate Limiting and Abuse Throttling
 Students systematically probing the Pre-Flight Gate to reverse-engineer filter thresholds is a known adversarial vector.
-*   **Probing Detection**: The Gateway tracks rejected inputs internally.
-*   **Throttling**: If a user hits `maxProbesPerHour` at the Pre-Flight Gate, the Gateway locks the session (`RATE_LIMIT_EXCEEDED`) for `lockoutDurationMinutes` and halts stream processing.
+*   **Probing Detection**: The Gateway tracks rejected inputs internally, storing state via `ISessionStore` (abstracting Redis/Memory logic).
+*   **Throttling via Exponential Backoff**: If a user hits `maxProbesPerHour` at the Pre-Flight Gate, the Gateway imposes an exponentially increasing lockout (`RATE_LIMIT_EXCEEDED`): e.g., 1 minute, then 5 minutes, then 15 minutes. This deters systematic probing far better than a static timeout, while tying limits robustly to durable identities (like SSO ID).
 *   **Feedback Loop**: Repeated probing events trigger an asynchronous `policyConflict` telemetry ping. This feeds directly into the adversarial evaluation suite, providing developers with actionable payload data.
