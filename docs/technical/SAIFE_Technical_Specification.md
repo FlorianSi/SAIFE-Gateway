@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Experimental Concept**
-> This specification describes an experimental blueprint for an educational AI middleware. It does not claim perfection or absolute security. Instead, it is offered as a starting point for developers, educators, and security researchers to use, test, challenge, and improve. We invite the community to find flaws and contribute to making digital learning environments safer.
+> This specification describes an experimental blueprint for an educational AI middleware. It does not claim perfection or absolute security. Instead, it is offered as a starting point for developers, educators, and security researchers to use, test, challenge, and improve. I invite the community to find flaws and contribute to making digital learning environments safer.
 
 ## 1. Architectural Concept
 
