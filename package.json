@@ -1,0 +1,57 @@
+{
+  "name": "saife-gateway",
+  "version": "0.1.0-alpha.1",
+  "description": "Secure AI for Education (SAIFE) Gateway",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "verify-audit-chain": "echo \"Audit chain verification stub\"",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "education",
+    "ai",
+    "safety",
+    "compliance",
+    "gdpr"
+  ],
+  "author": "SAIFE Project Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/placeholder/saife-gateway.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "src/**/*.js",
+    "src/**/*.d.ts",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "!**/*.test.js",
+    "!**/*.test.d.ts",
+    "!docs/handover",
+    "!dev-certs",
+    "!**/*.env",
+    "!*.log",
+    "!*.jsonl",
+    "!*.audit",
+    "!*.telemetry"
+  ],
+  
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.1.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "re2": "^1.24.1"
+  }
+}

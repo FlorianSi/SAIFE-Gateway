@@ -1,0 +1,47 @@
+# Local files and documentation not intended for GitHub
+/local_docs/
+
+# Dependency directories
+/node_modules/
+/jspm_packages/
+
+# Build outputs
+/dist/
+/build/
+/out/
+*.tsbuildinfo
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Environments and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+
+# SAIFE specifics
+dev-certs/
+*.log
+*.audit
+*.telemetry
+audit_output/
+telemetry_output/
+
+*.jsonl
+
+.env*
+!.env.example
