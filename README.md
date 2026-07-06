@@ -1,20 +1,23 @@
 # SAIFE Gateway
-Secure AI for Education (SAIFE) Gateway: Pedagogy-first security and safety for LLMs in schools.
 
-[![CI](https://github.com/FlorianSi/SAIFE-Gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/FlorianSi/SAIFE-Gateway/actions/workflows/ci.yml)
+<!-- [![CI](https://github.com/FlorianSi/SAIFE-Gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/FlorianSi/SAIFE-Gateway/actions/workflows/ci.yml) -->
+![Audience](https://img.shields.io/badge/audience-developers%2Feducators-blue)
+![Status](https://img.shields.io/badge/status-alpha-orange)
+![Updated](https://img.shields.io/badge/updated-2026--07--06-lightgrey)
+*Pedagogy-first security and safety middleware for LLMs in schools.*
 
-## Why this exists
+This document is the main entry point for the SAIFE Gateway project. Read this to understand the project's purpose, architecture, and how to get started.
 
-I am a former teacher now working in edtech, and I believe deeply in the potential of AI to support both educators and students. However, I’ve seen firsthand how difficult it is for schools to adopt generative AI safely. Between the risks of prompt injection, the complexities of data privacy laws, and the need for pedagogical guardrails, schools are often left either blocking AI entirely or adopting it without adequate protections.
+**SAIFE Gateway** (Safe AI For Education) is an open-source middleware that sits between a school's learning platform and any Large Language Model (LLM) — such as those from OpenAI, Anthropic, or Google — and makes the conversation between students and the AI safer on both sides.
 
-I built the SAIFE Gateway to solve this problem transparently. By designing this gateway in collaboration with AI tools, every architectural and pedagogical decision has been carefully documented and scrutinized. My goal is to provide a robust, transparent layer of protection that sits between students and the underlying AI models, ensuring that safety and pedagogical integrity always come first.
+Before a student's message reaches the AI, the Gateway checks it: messages indicating a personal crisis receive an immediate, supportive response and alert a trusted adult at the school — they are never answered by the AI alone. Messages attempting to manipulate the AI (prompt injection) are blocked. Before the AI's answer reaches the student, it is inspected as it streams, so policy-violating content is withheld before it ever appears on screen.
 
-This project is offered openly for educators, developers, and security researchers to use, challenge, and improve. It’s designed for strict compliance and built toward making AI in education as safe as possible. Please explore the code, read the rationale behind our design decisions, and join us in building a better, safer AI ecosystem for students.
+Around this core, the Gateway handles what schools are legally required to get right: data minimization and retention schedules aligned with the GDPR, an append-only audit trail, redaction of personal data before prompts leave the school's infrastructure, and teacher-in-the-loop controls. It is written in TypeScript, installed via `npm install saife-gateway`, and connects to any LLM provider that passes its built-in compliance checklist.
 
-## Project status
+**Current status: alpha.** This is a working proof of concept with a full test suite — but the expert reviews listed in [Open Review Items](docs/OPEN_REVIEW_ITEMS.md) are still pending, and it must not yet be used with real students.
 
-> [!WARNING]
-> **ALPHA RELEASE**: This project is not production-ready and is absolutely not approved for use with real students yet. Expert reviews (legal, DPO, psychological) are currently pending. Please see the [Open Review Items](docs/OPEN_REVIEW_ITEMS.md) for details on blocking requirements.
+Before adopting this project, read my own [honest assessment](docs/HONEST_ASSESSMENT.md) of what it does well, what it doesn't solve, and simpler alternatives worth considering.
+
 
 ## What SAIFE Gateway does
 
@@ -37,16 +40,13 @@ npm install saife-gateway
 import { SaifeClient } from 'saife-gateway';
 
 const saife = new SaifeClient({
-  provider: {
-    endpoint: process.env.AI_ENDPOINT || 'https://api.openai.com/v1/chat/completions',
-    apiKey: process.env.AI_API_KEY || 'sk-test-key',
-    model: 'gpt-4o'
-  },
-  pedagogy: {
-    systemDirective: 'You are a helpful educational assistant.',
-    focusTopics: { 'MATH': 'Mathematics' },
-    studentMaxDailyRequests: 50,
-    exemptions: []
+  apiKey: process.env.AI_API_KEY || 'sk-test-key',
+  focusTopics: { 'MATH_01': 'Algebra Basics' },
+  providerConfig: {
+    dpaExecuted: true,
+    transferBasis: 'NONE',
+    noTrainingClause: true,
+    endpointRegion: 'EU'
   }
 });
 

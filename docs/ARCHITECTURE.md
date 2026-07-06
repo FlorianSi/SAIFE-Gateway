@@ -1,5 +1,12 @@
 # SAIFE Gateway Architecture
 
+![Audience](https://img.shields.io/badge/audience-developers%2Farchitects-blue)
+![Status](https://img.shields.io/badge/status-active-orange)
+![Updated](https://img.shields.io/badge/updated-2026--07--06-lightgrey)
+*As-built system details, component map, and storage interfaces.*
+
+This document details the architectural layout of the Secure AI For Education (SAIFE) Gateway. Read this to understand the sequence of the safety pipeline, the fail-closed principles, and the internal component map.
+
 The SAIFE Gateway serves as a secure, transparent intermediary layer positioned between the educational frontend and external Generative AI providers. Its primary architecture is designed around fail-closed principles, ephemeral state management, and pedagogical safety.
 
 ## The Gateway Pipeline
@@ -9,7 +16,7 @@ Every incoming message from a student is routed through a rigorous, linear pipel
 1. **Input Sanitization:** User inputs are immediately sanitized (e.g., stripping reserved delimiter tokens) to prevent low-level injection framing.
 2. **Crisis Classification:** The input is evaluated against a pattern-based crisis classifier to detect self-harm or emergencies.
 3. **Attack Inspection:** A fast, linear-time regular expression engine (`re2`) scans the input for known prompt injection and jailbreak attacks. Salami-slicing (distributed attacks) are evaluated using session history.
-4. **LLM Call:** If the input passes all safety checks, it is appended with the `TeacherFocusDirective` and safety ledger, and forwarded to the external AI model.
+4. **Large Language Model (LLM) Call:** If the input passes all safety checks, it is appended with the `TeacherFocusDirective` and safety ledger, and forwarded to the external AI model.
 5. **Stream Hold-back Inspection:** The response stream from the AI is buffered into small windows and continuously inspected for inappropriate content or leaks before being yielded to the user.
 
 ### Why Crisis Evaluates First
@@ -27,11 +34,11 @@ Below is a breakdown of the core components found in the `src/` directory:
 | `Sanitizer.ts` | Provides the `InputSanitizer` utility to strip reserved system tokens from raw input. |
 | `InMemorySessionStore.ts` | A transient, ephemeral state store managing rate limits, penalty buckets, and conversation history. |
 | `InMemoryCrisisStore.ts` | Volatile state store tracking detected crisis events per user (for dev/alpha use only). |
-| `RedactionProvider.ts` | Contains logic to identify and replace student names or IDs from rosters to prevent PII leakage. |
+| `RedactionProvider.ts` | Contains logic to identify and replace student names or IDs from rosters to prevent Personally Identifiable Information (PII) leakage. |
 | `RetentionJobs.ts` | Manages background cron schedules to enforce data minimization by evicting expired records from the stores. |
 | `AuditSink.ts` | Development implementation for logging security events and errors. |
 | `TelemetrySink.ts` | Aggregates anonymous, count-based metrics for dashboard usage without persisting sensitive data. |
-| `WebhookCrisisTransport.ts` | Delivers asynchronous crisis alerts to designated school emergency contacts. |
+| `WebhookCrisisTransport.ts` | Delivers asynchronous crisis alerts. See the authoritative contract in [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md#webhook-contract-for-crisis-alerts). |
 
 ## Request Sequence Diagram
 
