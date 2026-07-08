@@ -4,6 +4,7 @@
 ![Audience](https://img.shields.io/badge/audience-developers%2Feducators-blue)
 ![Status](https://img.shields.io/badge/status-alpha-orange)
 ![Updated](https://img.shields.io/badge/updated-2026--07--06-lightgrey)
+
 *Pedagogy-first security and safety middleware for LLMs in schools.*
 
 This document is the main entry point for the SAIFE Gateway project. Read this to understand the project's purpose, architecture, and how to get started.
